@@ -2,7 +2,11 @@
 #include <stdlib.h> // rand, RAND_MAX
 #include <iostream> // cout, fixed
 #include <iomanip> // setprecision
+#include <string> // std::string
 #include "network.h"
+#include "progress.h" 
+
+long long time_millis(); 
 
 double random01() {
 	return static_cast <double> (rand()) / static_cast <double> (RAND_MAX); 
@@ -172,21 +176,49 @@ double Network::update_mini_batch(double** inputs, double** expected_outputs, in
 }
 
 void Network::train(double** inputs, double** expected_outputs, int training_size, int epochs) {
+	std::cout << "Training:" << std::setprecision(3) << std::fixed << std::endl; 
+	Progress progress = Progress(10); 
+	double error; 
+	double total_time = 0; 
 	for (int epoch = 0; epoch < epochs; epoch++) {
 		double error_sums = 0;
-		std::cout << "Training [ "; 
+		std::cout << "   Epoch " << epoch + 1 << ": "; 
+		progress.initialize();
+		double start_time = time_millis(); 
 		for (int batch = 0; batch < training_size / batch_size; batch++) {
-			error_sums += update_mini_batch(inputs, expected_outputs, batch * batch_size); 
-			if (batch % (training_size / batch_size / 10) == 0) {
-				std::cout << batch / (training_size / batch_size / 10) << " "; 
-			}
+			error_sums += update_mini_batch(inputs, expected_outputs, batch * batch_size);
+			
+			progress.update(batch / ((double)training_size / batch_size)); 
 		}
-		std::cout << "] "; 
+		progress.update(1); // Completed bar 
 		
 		// All training has been completed for the epoch. Display the new error to profile performance
-		double error = (1.0 / (2 * training_size)) * error_sums;
-		std::cout << epoch + 1 << ": " << error << std::endl;
+		error = (1.0 / (2 * training_size)) * error_sums;
+		std::cout << " " << error;
+		
+		// Display time in a nice format
+		double time = time_millis() - start_time; 
+		total_time += time; 
+		std::string time_format = "ms"; 
+		if (time > 1000) {
+			time /= 1000; 
+			time_format = "s";
+		}
+			
+		std::cout << " (" << time << time_format << ")" << std::endl;
 	}
+	
+	std::string time_format = "ms"; 
+	if (total_time > 1000) {
+		total_time /= 1000; 
+		time_format = "s"; 
+	}
+	if (total_time > 60) {
+		total_time /= 60; 
+		time_format = "m"; 
+	}
+	
+	std::cout << "MSE: " << std::setprecision(5) << error << ", duration: " <<  total_time << time_format << std::endl; 
 }
 
 int Network::test(double* input) {

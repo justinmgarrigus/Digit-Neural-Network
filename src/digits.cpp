@@ -12,7 +12,16 @@
 #include <chrono> 
 #include <math.h> 
 #include "canvas.h"
-#include "network.h" 
+#include "network.h"
+
+long long start_time; 
+long long time_millis() {
+	using namespace std::chrono; 
+	milliseconds ms = duration_cast<milliseconds>(
+		system_clock::now().time_since_epoch()
+	);
+	return ms.count() - start_time; // How many milliseconds have passed since we started the program. 
+}
 
 struct input_package {
 	int count;
@@ -95,6 +104,7 @@ struct input_package {
 };
 
 int main(int argc, char* argv[]) {
+	start_time = time_millis(); 
 	std::cout << std::unitbuf; 
 	SetConsoleOutputCP(CP_UTF8); 
 	setvbuf(stdout, nullptr, _IOFBF, 1000);
@@ -110,7 +120,7 @@ int main(int argc, char* argv[]) {
 		int size = 3; 
 		int lengths[size] = {784, 30, 10}; 
 		Network *network = new Network(lengths, size, 3.0, 10);
-		network->train(data->images, data->labels, 50000, 10); 
+		network->train(data->images, data->labels, data->count, 10); 
 		
 		delete data; 
 		data = new input_package(argv[3], argv[4]); 
